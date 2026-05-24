@@ -1,37 +1,37 @@
-/**********************************************************************************************************************************/
-/* Module       : BAS2TAP.C                                                                                                       */
-/* Executable   : BAS2TAP.EXE                                                                                                     */
-/* Doc file     : BAS2TAP.DOC                                                                                                     */
-/* Version type : Single file                                                                                                     */
-/* Last changed : 20-01-2013  16:00                                                                                               */
-/* Update count : 18                                                                                                              */
-/* OS type      : Generic                                                                                                         */
-/*                Watcom C = wcl386 -mf -fp3 -fpi -3r -oxnt -w4 -we bas2tap.c                                                     */
-/*                MS C     = cl /Ox /G2 /AS bas2tap.c /F 1000                                                                     */
-/*                gcc      = gcc -Wall -O2 bas2tap.c -o bas2tap -lm ; strip bas2tap                                               */
-/*                SAS/C    = sc link math=ieee bas2tap.c                                                                          */
-/* Libs needed  : math                                                                                                            */
-/* Description  : Convert ASCII BASIC file to TAP tape image emulator file                                                        */
-/*                                                                                                                                */
-/* Notes        : There's a check for a define "__DEBUG__", which generates tons of output if defined.                            */
-/*                                                                                                                                */
-/*                Copyleft (C) 1998-2013 ThunderWare Research Center, written by Martijn van der Heide.                           */
-/*                                                                                                                                */
-/*                This program is free software; you can redistribute it and/or                                                   */
-/*                modify it under the terms of the GNU General Public License                                                     */
-/*                as published by the Free Software Foundation; either version 2                                                  */
-/*                of the License, or (at your option) any later version.                                                          */
-/*                                                                                                                                */
-/*                This program is distributed in the hope that it will be useful,                                                 */
-/*                but WITHOUT ANY WARRANTY; without even the implied warranty of                                                  */
-/*                MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                                                   */
-/*                GNU General Public License for more details.                                                                    */
-/*                                                                                                                                */
-/*                You should have received a copy of the GNU General Public License                                               */
-/*                along with this program; if not, write to the Free Software                                                     */
-/*                Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.                                     */
-/*                                                                                                                                */
-/**********************************************************************************************************************************/
+/**********************************************************************************************************************
+ * Module       : BAS2TAP.C                                                                                            
+ * Executable   : BAS2TAP.EXE                                                                                          
+ * Doc file     : BAS2TAP.DOC                                                                                          
+ * Version type : Single file                                                                                          
+ * Last changed : 20-01-2013  16:00                                                                                    
+ * Update count : 18                                                                                                   
+ * OS type      : Generic                                                                                              
+ *                Watcom C = wcl386 -mf -fp3 -fpi -3r -oxnt -w4 -we bas2tap.c                                          
+ *                MS C     = cl /Ox /G2 /AS bas2tap.c /F 1000                                                          
+ *                gcc      = gcc -Wall -O2 bas2tap.c -o bas2tap -lm ; strip bas2tap                                    
+ *                SAS/C    = sc link math=ieee bas2tap.c                                                               
+ * Libs needed  : math                                                                                                 
+ * Description  : Convert ASCII BASIC file to TAP tape image emulator file                                             
+ *                                                                                                                     
+ * Notes        : There's a check for a define "__DEBUG__", which generates tons of output if defined.                 
+ *                                                                                                                     
+ *                Copyleft (C) 1998-2013 ThunderWare Research Center, written by Martijn van der Heide.                
+ *                                                                                                                     
+ *                This program is free software; you can redistribute it and/or                                        
+ *                modify it under the terms of the GNU General Public License                                          
+ *                as published by the Free Software Foundation; either version 2                                       
+ *                of the License, or (at your option) any later version.                                               
+ *                                                                                                                     
+ *                This program is distributed in the hope that it will be useful,                                      
+ *                but WITHOUT ANY WARRANTY; without even the implied warranty of                                       
+ *                MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the                                        
+ *                GNU General Public License for more details.                                                         
+ *                                                                                                                     
+ *                You should have received a copy of the GNU General Public License                                    
+ *                along with this program; if not, write to the Free Software                                          
+ *                Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.                          
+ *                                                                                                                     
+ **********************************************************************************************************************/
 
 #include <sys/types.h>
 #include <stdio.h>
@@ -41,19 +41,17 @@
 #include <ctype.h>
 #include <math.h>
 
-/**********************************************************************************************************************************/
-/* Some compilers don't define the following things, so I define them here...                                                     */
-/**********************************************************************************************************************************/
+/**********************************************************************************************************************
+  Some compilers don't define the following things, so I define them here...                                           
+ **********************************************************************************************************************/
 
 #ifdef __WATCOMC__
-#define x_strnicmp(_S1,_S2,_Len)  strnicmp (_S1, _S2, _Len)
-#define x_log2(_X)                log2 (_X)
+#define x_strnicmp(_S1, _S2, _Len)  strnicmp (_S1, _S2, _Len)
+#define x_log2(_X) log2 (_X)
 #else
-int x_strnicmp (char *_S1, char *_S2, int _Len)                                        /* Case independant partial string compare */
-{
-  for ( ; _Len && *_S1 && *_S2 && toupper (*_S1) == toupper (*_S2) ; _S1 ++, _S2 ++, _Len --)
-    ;
-  return (_Len ? (int)toupper (*_S1) - (int)toupper (*_S2) : 0);
+int x_strnicmp(char *_S1, char *_S2, int _Len) {  // Case independant partial string compare
+    for ( ; _Len && *_S1 && *_S2 && toupper(*_S1) == toupper(*_S2) ; _S1 ++, _S2 ++, _Len --) {}
+    return (_Len ? (int)toupper (*_S1) - (int)toupper (*_S2) : 0);
 }
 #define x_log2(_X)                (log (_X) / log (2.0))                     /* If your compiler doesn't know the 'log2' function */
 #endif
@@ -200,7 +198,7 @@ struct TokenMap_s
    {"STEP",      6, { 0 }},
 
    /* BASIC tokens - keywords */
-   {"DEF FN",    1, { 15, 0 }},                 /* Special treatment - insertion of call-by-value room required for the evaluator */
+   {"DEF FN",    1, { 15, 0 }},  // Special treatment - insertion of call-by-value room required for the evaluator
    {"CAT",       1, { 11, 0 }},
    {"FORMAT",    1, { 11, 0 }},
    {"MOVE",      1, { 11, 0 }},
@@ -228,8 +226,8 @@ struct TokenMap_s
    {"BORDER",    1, { 6, 0 }},
    {"CONTINUE",  1, { 0 }},
    {"DIM",       1, { 1, '(', 13, ')', 0 }},
-   {"REM",       1, { 5, 0 }},                                                                 /* (Special: taken out separately) */
-   {"FOR",       1, { 4, '=', 6, 0xCC, 6, 0xCD, 6, 0 }},                                /* (Special: STEP (0xCD) is not required) */
+   {"REM",       1, { 5, 0 }},                            // (Special: taken out separately)
+   {"FOR",       1, { 4, '=', 6, 0xCC, 6, 0xCD, 6, 0 }},  // (Special: STEP (0xCD) is not required)
    {"GO TO",     1, { 6, 0 }},
    {"GO SUB",    1, { 6, 0 }},
    {"INPUT",     1, { 5, 0 }},
@@ -254,7 +252,7 @@ struct TokenMap_s
 #define MAXLINELENGTH 1024
 
 char ConvertedSpectrumLine[MAXLINELENGTH + 1];
-byte ResultingLine[MAXLINELENGTH + 1];
+byte ResultingLine[MAXLINELENGTH * 8]; /* Expansion for numbers: 1 char can become 7 bytes */
 
 struct TapeHeader_s
 {
@@ -3023,19 +3021,23 @@ int main (int argc, char **argv)
         case 'a' : AutoStart = atoi (argv[Cnt] + 2);
                    if (AutoStart < 0 || AutoStart >= 10000)
                    {
-                     fprintf (ErrStream, "Invalid auto-start line number %d\n", AutoStart);
+                     fprintf(ErrStream, "Invalid auto-start line number %d\n", AutoStart);
                      exit (1);
                    }
                    TapeHeader.HStartLo = (byte)(AutoStart & 0xFF);
                    TapeHeader.HStartHi = (byte)(AutoStart >> 8);
                    break;
-        case 's' : if (strlen (argv[Cnt] + 2) > 10)
-                   {
-                     fprintf (ErrStream, "Spectrum blockname too long \"%s\"\n", argv[Cnt] + 2);
-                     exit (1);
-                   }
-                   strncpy (TapeHeader.HName, argv[Cnt] + 2, strlen (argv[Cnt] + 2));
-                   break;
+        case 's' : {
+                    int len = strlen(argv[Cnt] + 2);
+                    if (len > 10) {
+                        fprintf(ErrStream, "Spectrum blockname too long \"%s\"\n", argv[Cnt] + 2);
+                        exit (1);
+                    } else {
+                        if (len > sizeof(TapeHeader.HName)) len = sizeof(TapeHeader.HName);
+                        strncpy(TapeHeader.HName, argv[Cnt] + 2, len);
+                    }
+                    break;
+                    }
         default  : fprintf (ErrStream, "Unknown switch \'%c\'\n", argv[Cnt][1]);
       }
     else if (FileNameIn[0] == '\0')
@@ -3363,7 +3365,7 @@ int main (int argc, char **argv)
         case -1 : break;                                                                                       /* Neither of them */
         case 0  : printf ("Note: this program requires Interface 1 or Opus Discovery\n"); break;
         case 1  : printf ("Note: this program requires Interface 1\n"); break;
-        case 2  : printf ("Note: this program requires an Opus Discovery"); break;
+        case 2  : printf ("Note: this program requires an Opus Discovery\n"); break;
       }
     }
   }
